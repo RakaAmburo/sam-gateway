@@ -1,0 +1,121 @@
+{
+	"info": {
+		"_postman_id": "9892c8ae-c643-4d11-a33b-c8220d01bc25",
+		"name": "SAM",
+		"description": "SAM",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "localhost:8080/sam-repo/menuItems",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\"title\": \"final por hoy2\",\r\n\"restaurantId\": \"219834719282\",\r\n\"languageId\": \"3123412344\",\r\n\"groups\": [\r\n    {\"title\": \"group1\",\r\n    \"parentId\": null,\r\n    \"description\": \"group desc\"\r\n    }\r\n],\r\n\"description\": \"nada que decir mas\",\r\n\"prices\": [\r\n    {\"title\": \"price\",\r\n    \"description\": \"price desc\",\r\n    \"amount\": 1.2\r\n    }\r\n]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/startTest",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"startTest"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "localhost:8080/sam-repo/menuItems",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\"id\": \"5f37e63ed70826457312ad6b\",\r\n\"title\": \"final por hoy\",\r\n\"description\": \"nada que decir mas con acento\",\r\n\"price\": 1.44\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8080/sam-repo/menuItems",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"sam-repo",
+						"menuItems"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Gateway-stop",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/sam-gateway/test/stop",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"sam-gateway",
+						"test",
+						"stop"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Gateway-condense",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"id\": \"7bd71af7-341b-4240-9bef-2019b8b7cb31\",\r\n    \"requests\": [\r\n        \"989c115d-a509-4c07-8d9f-f14140ec51f5\"\r\n    ]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/sam-gateway/test/condense",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"sam-gateway",
+						"test",
+						"condense"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}

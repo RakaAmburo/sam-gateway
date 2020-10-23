@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
@@ -43,7 +44,13 @@ public class Condenser {
   private FluxSink<BigRequest> sink;
   private boolean connected = false;
   private ScheduledExecutorService shutDown = Executors.newSingleThreadScheduledExecutor();
-  private Long pingTime;
+  private Long pingTime = 0L;
+  private boolean pinging = false;
+  private int startingPingTimes = 0;
+  private Disposable connection;
+  private Disposable amAliving;
+  private int channelConnErrTimes = 0;
+  private int aliveConnErrTimes = 0;
 
   public Condenser(RSocketRequester.Builder builder) {
 
@@ -62,38 +69,63 @@ public class Condenser {
     return this.sink;
   }
 
+  public void retryConnAndAlive(){
+    connected = false;
+
+  }
+
   private void startAmAlive() {
     Flux<String> ping =
         Flux.fromStream(Stream.generate(() -> "ping")).delayElements(Duration.ofMillis(1500));
-    this.client
-        .route("startAmAlive")
-        .metadata(this.credentials, this.mimeType)
-        .data(ping)
-        .retrieveFlux(String.class)
-        .doOnNext(
-            pong -> {
-              pingTime = System.currentTimeMillis();
-              // System.out.println(pingTime);
-            })
-        .subscribe();
+    amAliving =
+        this.client
+            .route("startAmAlive")
+            .metadata(this.credentials, this.mimeType)
+            .data(ping)
+            .retrieveFlux(String.class)
+            .retryWhen(Retry.indefinitely())
+            .doOnError(
+                error -> {
+                  System.out.println(error);
+                })
+            .doOnNext(
+                pong -> {
+                  if (!pinging) {
+                    if (startingPingTimes < 3) {
+                      startingPingTimes++;
+                    } else {
+                      pinging = true;
+                      pingTime = System.currentTimeMillis();
+                    }
+                  }
+                  pingTime = System.currentTimeMillis();
+                  //System.out.println("alive " + pingTime);
+                })
+            .subscribe();
   }
 
   private void connect() {
     UnicastProcessor<BigRequest> data = UnicastProcessor.create();
     this.sink = data.sink();
 
-    this.client
-        .route("channel")
-        .metadata(this.credentials, this.mimeType)
-        // .data(Mono.empty())
-        .data(data)
-        .retrieveFlux(BigRequest.class)
-        .doOnNext(
-            bigRequest -> {
-              queue.pop().getMonoSink().success(bigRequest);
-              System.out.println("ID: " + bigRequest.getId());
-            })
-        .subscribe();
+    connection =
+        this.client
+            .route("channel")
+            .metadata(this.credentials, this.mimeType)
+            // .data(Mono.empty())
+            .data(data)
+            .retrieveFlux(BigRequest.class)
+            .retryWhen(Retry.indefinitely())
+            .doOnError(
+                error -> {
+                  System.out.println(error);
+                })
+            .doOnNext(
+                bigRequest -> {
+                  queue.pop().getMonoSink().success(bigRequest);
+                  System.out.println("ID: " + bigRequest.getId());
+                })
+            .subscribe();
   }
 
   private void getRSocketRequester() {
@@ -102,20 +134,19 @@ public class Condenser {
             .setupMetadata(this.credentials, this.mimeType)
             // .rsocketConnector(connector -> connector.acceptor(acceptor))
             .rsocketConnector(connector -> connector.payloadDecoder(PayloadDecoder.ZERO_COPY))
-                //.reconnect(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(5)))
+            // .reconnect(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(5)))
             .connectTcp("localhost", 8888)
             .doOnSuccess(
                 success -> {
-                  System.out.println("socket connected");
+                  System.out.println("Socket Connected!");
                 })
             .retryWhen(
                 Retry.indefinitely()
                     .doAfterRetry(
                         signal -> {
-                          log.info("Retrying times:  " + signal.totalRetriesInARow());
+                          // log.info("Retrying times:  " + signal.totalRetriesInARow());
                         }))
             .block();
-
   }
 
   public Mono<BigRequest> doCondense(BigRequest bigRequest) {
@@ -162,23 +193,43 @@ public class Condenser {
 
   public Runnable checkServerPing() {
     return () -> {
-      if (pingTime != null) {
+      //;
+      if (connected && pinging) {
         Long now = System.currentTimeMillis();
         Long diff = now - pingTime;
-        if (diff > 1500) {
+
+        if (diff > 1600) {
+          System.out.println(diff + " too long diff, reconnecting!");
           connected = false;
+          pinging = false;
+          startingPingTimes = 0;
         }
       }
 
       if (!connected) {
-        getRSocketRequester();
-        connect();
-        connected = true;
-        pingTime = null;
-        startAmAlive();
+        synchronized (this) {
+          if (!connected) {
+            System.out.println("connecting process");
+            if (this.client != null){
+              this.client.rsocket().dispose();
+              this.client = null;
+            }
+            if (connection != null){
+              connection.dispose();
+              connection = null;
+            }
+            if (amAliving != null){
+              amAliving.dispose();
+              amAliving = null;
+            }
+            getRSocketRequester();
+            connect();
+            connected = true;
+            startAmAlive();
+            pingTime = System.currentTimeMillis();
+          }
+        }
       }
-
-
     };
   }
 

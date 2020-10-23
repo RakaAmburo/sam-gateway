@@ -33,16 +33,22 @@ public class Test {
     return Flux.just("Its working");
   }*/
 
-  @PostMapping()
+  @PostMapping("/condense")
   public  Mono<BigRequest> add(@RequestBody BigRequest bigRequest) {
     Mono<BigRequest> resp = condenser.doCondense(bigRequest);
 
     return resp;
   }
 
-  @GetMapping()
+  @GetMapping("/stop")
   public Mono<Void> stop(){
     System.exit(1);
+    return Mono.empty();
+  }
+
+  @GetMapping("/retry")
+  public Mono<Void> retry(){
+    condenser.retryConnAndAlive();
     return Mono.empty();
   }
 }
