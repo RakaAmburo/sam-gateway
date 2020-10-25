@@ -4,6 +4,7 @@ import com.sam.gateway.entities.BigRequest;
 import com.sam.gateway.entities.MonoContainer;
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.metadata.WellKnownMimeType;
+import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.rsocket.RSocketRequester;
@@ -123,7 +124,7 @@ public class Condenser {
             .doOnNext(
                 bigRequest -> {
                   queue.pop().getMonoSink().success(bigRequest);
-                  System.out.println("ID: " + bigRequest.getId());
+                  //System.out.println("ID: " + bigRequest.getId());
                 })
             .subscribe();
   }
@@ -160,11 +161,15 @@ public class Condenser {
         Mono.create(
             s -> {
               monoContainer.setMonoSink(s);
+
             });
 
     // Mono.create(s -> s.onCancel(() -> cancelled.set(true)).success("test"))
-    this.queue.add(monoContainer);
-    mySink.next(bigRequest);
+    synchronized (this){
+      this.queue.add(monoContainer);
+      mySink.next(bigRequest);
+    }
+
     return brMono;
   }
 
@@ -193,7 +198,7 @@ public class Condenser {
 
   public Runnable checkServerPing() {
     return () -> {
-      //;
+      //System.out.println("QUEUE SIZE = " + this.queue.size());
       if (connected && pinging) {
         Long now = System.currentTimeMillis();
         Long diff = now - pingTime;
