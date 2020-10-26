@@ -136,7 +136,7 @@ public class Condenser {
             // .rsocketConnector(connector -> connector.acceptor(acceptor))
             .rsocketConnector(connector -> connector.payloadDecoder(PayloadDecoder.ZERO_COPY))
             // .reconnect(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(5)))
-            .connectTcp("localhost", 8888)
+            .connectTcp("ec2-18-191-141-142.us-east-2.compute.amazonaws.com", 8888)
             .doOnSuccess(
                 success -> {
                   System.out.println("Socket Connected!");
