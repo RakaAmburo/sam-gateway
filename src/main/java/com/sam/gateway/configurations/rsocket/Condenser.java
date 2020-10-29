@@ -209,7 +209,7 @@ public class Condenser {
   public Runnable checkServerPing() {
     return () -> {
       //System.out.println("QUEUE SIZE = " + this.queue.size());
-      if (connected && pinging) {
+      /*if (connected && pinging) {
         Long now = System.currentTimeMillis();
         Long diff = now - pingTime;
 
@@ -219,7 +219,7 @@ public class Condenser {
           pinging = false;
           startingPingTimes = 0;
         }
-      }
+      }*/
 
       if (!connected) {
         synchronized (this) {
