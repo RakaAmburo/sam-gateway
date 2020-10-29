@@ -107,7 +107,7 @@ public class Condenser {
                     }
                   }
                   pingTime = System.currentTimeMillis();
-                  //System.out.println("alive " + pingTime);
+                  System.out.println("alive " + pingTime);
                 })
             .subscribe();
   }
