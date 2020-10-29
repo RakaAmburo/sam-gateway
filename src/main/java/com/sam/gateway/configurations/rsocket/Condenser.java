@@ -57,6 +57,8 @@ public class Condenser {
   private int channelConnErrTimes = 0;
   private int aliveConnErrTimes = 0;
 
+  private UnicastProcessor<BigRequest> data;
+
   public Condenser(RSocketRequester.Builder builder) {
 
     this.rSocketBuilder = builder;
@@ -109,7 +111,11 @@ public class Condenser {
   }
 
   private void connect() {
-    UnicastProcessor<BigRequest> data = UnicastProcessor.create();
+    if (this.data != null){
+      data.dispose();
+      data = null;
+    }
+    data = UnicastProcessor.create();
     this.sink = data.sink();
 
     connection =
