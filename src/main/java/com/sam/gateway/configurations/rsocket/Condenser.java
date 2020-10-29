@@ -4,7 +4,6 @@ import com.sam.gateway.entities.BigRequest;
 import com.sam.gateway.entities.MonoContainer;
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.metadata.WellKnownMimeType;
-import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -36,16 +35,14 @@ import java.util.stream.Stream;
 @Component
 public class Condenser {
 
-  @Value("${core.RSocket.host:localhost}")
-  private String coreRSocketHost;
-
-  @Value("${core.RSocket.port:8888}")
-  private Integer coreRSocketPort;
-
   private final UsernamePasswordMetadata credentials = new UsernamePasswordMetadata("jlong", "pw");
   private final MimeType mimeType =
       MimeTypeUtils.parseMimeType(WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION.getString());
   LinkedList<MonoContainer> queue = new LinkedList<>();
+  @Value("${core.RSocket.host:localhost}")
+  private String coreRSocketHost;
+  @Value("${core.RSocket.port:8888}")
+  private Integer coreRSocketPort;
   private RSocketRequester client;
   private RSocketRequester.Builder rSocketBuilder;
   private ExecutorService exec = Executors.newFixedThreadPool(4);
@@ -77,9 +74,8 @@ public class Condenser {
     return this.sink;
   }
 
-  public void retryConnAndAlive(){
+  public void retryConnAndAlive() {
     connected = false;
-
   }
 
   private void startAmAlive() {
@@ -131,7 +127,7 @@ public class Condenser {
             .doOnNext(
                 bigRequest -> {
                   queue.pop().getMonoSink().success(bigRequest);
-                  //System.out.println("ID: " + bigRequest.getId());
+                  // System.out.println("ID: " + bigRequest.getId());
                 })
             .subscribe();
   }
@@ -141,15 +137,20 @@ public class Condenser {
         this.rSocketBuilder
             .setupMetadata(this.credentials, this.mimeType)
             // .rsocketConnector(connector -> connector.acceptor(acceptor))
-            .rsocketConnector(connector -> connector.payloadDecoder(PayloadDecoder.ZERO_COPY))
+            .rsocketConnector(
+                connector -> {
+                  connector.payloadDecoder(PayloadDecoder.ZERO_COPY);
+                  connector.reconnect(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(1)));
+                })
             // .reconnect(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(5)))
             .connectTcp(coreRSocketHost, coreRSocketPort)
             .doOnSuccess(
                 success -> {
                   System.out.println("Socket Connected!");
                 })
-                .doOnError(error -> {
-                  //System.out.println(error);
+            .doOnError(
+                error -> {
+                  // System.out.println(error);
                 })
             .retryWhen(
                 Retry.indefinitely()
@@ -171,11 +172,10 @@ public class Condenser {
         Mono.create(
             s -> {
               monoContainer.setMonoSink(s);
-
             });
 
     // Mono.create(s -> s.onCancel(() -> cancelled.set(true)).success("test"))
-    synchronized (this){
+    synchronized (this) {
       this.queue.add(monoContainer);
       mySink.next(bigRequest);
     }
@@ -208,7 +208,7 @@ public class Condenser {
 
   public Runnable checkServerPing() {
     return () -> {
-      //System.out.println("QUEUE SIZE = " + this.queue.size());
+      // System.out.println("QUEUE SIZE = " + this.queue.size());
       /*if (connected && pinging) {
         Long now = System.currentTimeMillis();
         Long diff = now - pingTime;
@@ -225,22 +225,22 @@ public class Condenser {
         synchronized (this) {
           if (!connected) {
             System.out.println("connecting process");
-            if (this.client != null){
+            if (this.client != null) {
               this.client.rsocket().dispose();
               this.client = null;
             }
-            if (connection != null){
+            if (connection != null) {
               connection.dispose();
               connection = null;
             }
-            if (amAliving != null){
+            if (amAliving != null) {
               amAliving.dispose();
               amAliving = null;
             }
             getRSocketRequester();
             connect();
             connected = true;
-            //startAmAlive();
+            // startAmAlive();
             pingTime = System.currentTimeMillis();
           }
         }
