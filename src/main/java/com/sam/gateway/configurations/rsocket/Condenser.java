@@ -6,6 +6,7 @@ import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.metadata.WellKnownMimeType;
 import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.rsocket.RSocketRequester;
 import org.springframework.security.rsocket.metadata.UsernamePasswordMetadata;
@@ -34,6 +35,12 @@ import java.util.stream.Stream;
 @Slf4j
 @Component
 public class Condenser {
+
+  @Value("${core.rSocket.host:localhost}")
+  private String coreRSocketHost;
+
+  @Value("${core.rSocket.port:localhost}")
+  private Integer coreRSocketPort;
 
   private final UsernamePasswordMetadata credentials = new UsernamePasswordMetadata("jlong", "pw");
   private final MimeType mimeType =
@@ -136,7 +143,7 @@ public class Condenser {
             // .rsocketConnector(connector -> connector.acceptor(acceptor))
             .rsocketConnector(connector -> connector.payloadDecoder(PayloadDecoder.ZERO_COPY))
             // .reconnect(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(5)))
-            .connectTcp("ec2-18-191-141-142.us-east-2.compute.amazonaws.com", 8888)
+            .connectTcp(coreRSocketHost, coreRSocketPort)
             .doOnSuccess(
                 success -> {
                   System.out.println("Socket Connected!");
