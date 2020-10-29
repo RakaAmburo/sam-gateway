@@ -148,6 +148,9 @@ public class Condenser {
                 success -> {
                   System.out.println("Socket Connected!");
                 })
+                .doOnError(error -> {
+                  System.out.println(error);
+                })
             .retryWhen(
                 Retry.indefinitely()
                     .doAfterRetry(
