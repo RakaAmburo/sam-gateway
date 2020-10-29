@@ -36,10 +36,10 @@ import java.util.stream.Stream;
 @Component
 public class Condenser {
 
-  @Value("${core.rSocket.host:localhost}")
+  @Value("${core.RSocket.host:localhost}")
   private String coreRSocketHost;
 
-  @Value("${core.rSocket.port:localhost}")
+  @Value("${core.RSocket.port:8888}")
   private Integer coreRSocketPort;
 
   private final UsernamePasswordMetadata credentials = new UsernamePasswordMetadata("jlong", "pw");
