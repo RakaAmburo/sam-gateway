@@ -63,7 +63,7 @@ public class Condenser {
   public Condenser(RSocketRequester.Builder builder) {
 
     this.rSocketBuilder = builder;
-    //this.shutDown.scheduleAtFixedRate(this.checkServerPing(), 2, 1500, TimeUnit.MILLISECONDS);
+    this.shutDown.scheduleAtFixedRate(this.checkServerPing(), 2, 1500, TimeUnit.MILLISECONDS);
   }
 
   private FluxSink<BigRequest> getSink() {
