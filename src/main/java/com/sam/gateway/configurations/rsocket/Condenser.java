@@ -140,7 +140,8 @@ public class Condenser {
             .rsocketConnector(
                 connector -> {
                   connector.payloadDecoder(PayloadDecoder.ZERO_COPY);
-                  connector.reconnect(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(1)));
+                  //connector.reconnect(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(1)));
+
                 })
             // .reconnect(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(5)))
             .connectTcp(coreRSocketHost, coreRSocketPort)
