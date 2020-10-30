@@ -104,7 +104,7 @@ public class Condenser {
             .metadata(this.credentials, this.mimeType)
             .data(ping)
             .retrieveFlux(String.class)
-            .retryWhen(Retry.indefinitely())
+            .retryWhen(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(1)))
             .doOnError(
                 error -> {
                   System.out.println(error);
@@ -140,7 +140,7 @@ public class Condenser {
             // .data(Mono.empty())
             .data(data)
             .retrieveFlux(BigRequest.class)
-            .retryWhen(Retry.indefinitely())
+            .retryWhen(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(1)))
             .doOnError(
                 error -> {
                   System.out.println(error);
@@ -174,7 +174,7 @@ public class Condenser {
                 })
             .doOnError(
                 error -> {
-                  // System.out.println(error);
+                  System.out.println(error);
                 })
             .retryWhen(
                 Retry.indefinitely()
