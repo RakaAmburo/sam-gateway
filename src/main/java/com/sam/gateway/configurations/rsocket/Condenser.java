@@ -127,6 +127,7 @@ public class Condenser {
 
   private void connect() {
     if (this.data != null){
+      data.sink().complete();
       data.dispose();
       data = null;
     }
