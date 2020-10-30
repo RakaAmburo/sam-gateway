@@ -176,9 +176,6 @@ public class Condenser {
                 error -> {
                   System.out.println(error);
                 })
-                .doAfterTerminate(()->{
-                  System.out.println("COLGOSE");
-                })
             .retryWhen(
                 Retry.indefinitely()
                     .doAfterRetry(
