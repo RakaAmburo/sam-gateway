@@ -39,10 +39,13 @@ public class Condenser {
   private final MimeType mimeType =
       MimeTypeUtils.parseMimeType(WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION.getString());
   LinkedList<MonoContainer> queue = new LinkedList<>();
+
   @Value("${core.RSocket.host:localhost}")
   private String coreRSocketHost;
+
   @Value("${core.RSocket.port:8888}")
   private Integer coreRSocketPort;
+
   private RSocketRequester client;
   private RSocketRequester.Builder rSocketBuilder;
   private ExecutorService exec = Executors.newFixedThreadPool(4);
@@ -62,7 +65,7 @@ public class Condenser {
   public Condenser(RSocketRequester.Builder builder) {
 
     this.rSocketBuilder = builder;
-    this.shutDown.scheduleAtFixedRate(this.checkServerPing(), 2, 1500, TimeUnit.MILLISECONDS);
+    this.shutDown.scheduleAtFixedRate(this.checkServerPing(), 1000, 1000, TimeUnit.MILLISECONDS);
   }
 
   private FluxSink<BigRequest> getSink() {
@@ -93,6 +96,15 @@ public class Condenser {
     getRSocketRequester();
     connect();
     connected = true;
+  }
+
+  private void ping() {
+    this.client
+        .route("")
+        .metadata(this.credentials, this.mimeType)
+        .data(Mono.just("ping"))
+        .retrieveMono(String.class)
+        .subscribe();
   }
 
   private void startAmAlive() {
@@ -126,7 +138,7 @@ public class Condenser {
   }
 
   private void connect() {
-    if (this.data != null){
+    if (this.data != null) {
       data.sink().complete();
       data = null;
     }
@@ -145,14 +157,12 @@ public class Condenser {
                 error -> {
                   System.out.println(error);
                 })
-
             .doOnNext(
                 bigRequest -> {
                   queue.pop().getMonoSink().success(bigRequest);
                   // System.out.println("ID: " + bigRequest.getId());
                 })
             .subscribe();
-
   }
 
   private void getRSocketRequester() {
@@ -163,7 +173,8 @@ public class Condenser {
             .rsocketConnector(
                 connector -> {
                   connector.payloadDecoder(PayloadDecoder.ZERO_COPY);
-                  //connector.reconnect(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(1)));
+                  // connector.reconnect(Retry.fixedDelay(Integer.MAX_VALUE,
+                  // Duration.ofSeconds(1)));
 
                 })
             // .reconnect(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(5)))
@@ -176,16 +187,13 @@ public class Condenser {
                 error -> {
                   System.out.println(error);
                 })
-
             .retryWhen(
-                Retry.indefinitely()
+                Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(1))
                     .doAfterRetry(
                         signal -> {
                           // log.info("Retrying times:  " + signal.totalRetriesInARow());
                         }))
             .block();
-    this.client.rsocket().onClose().checkpoint("CERROSE");
-
   }
 
   public Mono<BigRequest> doCondense(BigRequest bigRequest) {
@@ -295,6 +303,6 @@ class HealthController {
               System.out.println(p);
             })
         .subscribe();
-    return Flux.interval(Duration.ofSeconds(1)).map(p -> "pong");
+    return Flux.fromStream(Stream.generate(() -> "pong")).delayElements(Duration.ofMillis(1000));
   }
 }
