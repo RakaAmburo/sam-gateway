@@ -77,7 +77,22 @@ public class Condenser {
   }
 
   public void retryConnAndAlive() {
-    connected = false;
+    System.out.println("connecting process");
+    if (this.client != null) {
+      this.client.rsocket().dispose();
+      this.client = null;
+    }
+    if (connection != null) {
+      connection.dispose();
+      connection = null;
+    }
+    if (amAliving != null) {
+      amAliving.dispose();
+      amAliving = null;
+    }
+    getRSocketRequester();
+    connect();
+    connected = true;
   }
 
   private void startAmAlive() {
@@ -130,12 +145,14 @@ public class Condenser {
                 error -> {
                   System.out.println(error);
                 })
+
             .doOnNext(
                 bigRequest -> {
                   queue.pop().getMonoSink().success(bigRequest);
                   // System.out.println("ID: " + bigRequest.getId());
                 })
             .subscribe();
+
   }
 
   private void getRSocketRequester() {
@@ -166,6 +183,7 @@ public class Condenser {
                           // log.info("Retrying times:  " + signal.totalRetriesInARow());
                         }))
             .block();
+
   }
 
   public Mono<BigRequest> doCondense(BigRequest bigRequest) {
