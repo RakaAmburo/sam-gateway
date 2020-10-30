@@ -176,9 +176,7 @@ public class Condenser {
                 error -> {
                   System.out.println(error);
                 })
-                .doAfterTerminate(()->{
-                  System.out.println("COLGOSE");
-                })
+
             .retryWhen(
                 Retry.indefinitely()
                     .doAfterRetry(
@@ -186,6 +184,7 @@ public class Condenser {
                           // log.info("Retrying times:  " + signal.totalRetriesInARow());
                         }))
             .block();
+    this.client.rsocket().onClose().checkpoint("CERROSE");
 
   }
 
