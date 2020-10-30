@@ -296,13 +296,13 @@ public class Condenser {
 class HealthController {
 
   @MessageMapping("amAlive")
-  Flux<String> amAlive(Flux<String> ping) {
+  Flux<String> amAlive() {
     System.out.println("entra al ping");
-    ping.doOnNext(
+    /*ping.doOnNext(
             p -> {
               System.out.println(p);
             })
-        .subscribe();
+        .subscribe();*/
     return Flux.fromStream(Stream.generate(() -> "pong")).delayElements(Duration.ofMillis(1000));
   }
 }
