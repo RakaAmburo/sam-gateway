@@ -303,6 +303,6 @@ class HealthController {
               System.out.println(p);
             })
         .subscribe();
-    return Flux.fromStream(Stream.generate(() -> "pong")).delayElements(Duration.ofMillis(1000));
+    return Flux.interval(Duration.ofSeconds(1)).map(p -> "pong");
   }
 }
