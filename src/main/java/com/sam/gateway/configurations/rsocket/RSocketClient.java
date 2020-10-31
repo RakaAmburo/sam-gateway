@@ -1,11 +1,14 @@
 package com.sam.gateway.configurations.rsocket;
 
+import io.rsocket.SocketAcceptor;
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.metadata.WellKnownMimeType;
 import org.springframework.boot.rsocket.messaging.RSocketStrategiesCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.rsocket.RSocketRequester;
+import org.springframework.messaging.rsocket.RSocketStrategies;
+import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler;
 import org.springframework.security.rsocket.metadata.SimpleAuthenticationEncoder;
 import org.springframework.security.rsocket.metadata.UsernamePasswordMetadata;
 import org.springframework.util.MimeType;
@@ -26,10 +29,10 @@ public class RSocketClient {
     return strategies -> strategies.encoder(new SimpleAuthenticationEncoder());
   }
 
-  /*@Bean
+  @Bean
   SocketAcceptor socketAcceptor(RSocketStrategies strategies, HealthController controller) {
       return RSocketMessageHandler.responder(strategies, controller);
-  }*/
+  }
 
   //@Bean
   // RSocketRequester rSocketRequester(SocketAcceptor acceptor, RSocketRequester.Builder builder) {

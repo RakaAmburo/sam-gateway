@@ -2,9 +2,14 @@ package com.sam.gateway.configurations.rsocket;
 
 import com.sam.gateway.entities.BigRequest;
 import com.sam.gateway.entities.MonoContainer;
+import io.rsocket.SocketAcceptor;
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.metadata.WellKnownMimeType;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.rsocket.RSocketRequester;
@@ -62,6 +67,9 @@ public class Condenser {
 
   private UnicastProcessor<BigRequest> data;
 
+  @Autowired
+  private SocketAcceptor acceptor;
+
   public Condenser(RSocketRequester.Builder builder) {
 
     this.rSocketBuilder = builder;
@@ -81,6 +89,12 @@ public class Condenser {
 
   public void retryConnAndAlive() {
     System.out.println("connecting process");
+
+      this.queue.stream().forEach(monoContainer -> {
+          monoContainer.getMonoSink().error(new Exception("could not process!"));
+      });
+      this.queue.clear();
+
     if (this.client != null) {
       this.client.rsocket().dispose();
       this.client = null;
@@ -93,48 +107,21 @@ public class Condenser {
       amAliving.dispose();
       amAliving = null;
     }
+
     getRSocketRequester();
+    startPing();
     connect();
     connected = true;
   }
 
-  private void ping() {
-    this.client
-        .route("")
-        .metadata(this.credentials, this.mimeType)
-        .data(Mono.just("ping"))
-        .retrieveMono(String.class)
-        .subscribe();
-  }
-
-  private void startAmAlive() {
-    Flux<String> ping =
-        Flux.fromStream(Stream.generate(() -> "ping")).delayElements(Duration.ofMillis(1500));
-    amAliving =
-        this.client
-            .route("startAmAlive")
+  private void startPing(){
+    client
+            .route("startPing")
             .metadata(this.credentials, this.mimeType)
-            .data(ping)
-            .retrieveFlux(String.class)
-            .retryWhen(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(1)))
-            .doOnError(
-                error -> {
-                  System.out.println(error);
-                })
-            .doOnNext(
-                pong -> {
-                  if (!pinging) {
-                    if (startingPingTimes < 3) {
-                      startingPingTimes++;
-                    } else {
-                      pinging = true;
-                      pingTime = System.currentTimeMillis();
-                    }
-                  }
-                  pingTime = System.currentTimeMillis();
-                  System.out.println("alive " + pingTime);
-                })
-            .subscribe();
+            .data(Mono.empty())
+            .retrieveMono(String.class)
+            .subscribe(System.out::println);
+
   }
 
   private void connect() {
@@ -155,7 +142,7 @@ public class Condenser {
             .retryWhen(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(1)))
             .doOnError(
                 error -> {
-                  System.out.println(error);
+                  System.out.println("Error sending data: " + error);
                 })
             .doOnNext(
                 bigRequest -> {
@@ -172,6 +159,7 @@ public class Condenser {
             // .rsocketConnector(connector -> connector.acceptor(acceptor))
             .rsocketConnector(
                 connector -> {
+                  connector.acceptor(acceptor);
                   connector.payloadDecoder(PayloadDecoder.ZERO_COPY);
                   // connector.reconnect(Retry.fixedDelay(Integer.MAX_VALUE,
                   // Duration.ofSeconds(1)));
@@ -218,29 +206,6 @@ public class Condenser {
     return brMono;
   }
 
-  public void test() {
-
-    UnicastProcessor<BigRequest> data = UnicastProcessor.create();
-    FluxSink<BigRequest> sink = data.sink();
-    IntStream.range(0, 100)
-        .forEach(
-            i -> {
-              exec.execute(dispatchCalls(sink));
-            });
-
-    client
-        .route("channel")
-        .metadata(this.credentials, this.mimeType)
-        // .data(Mono.empty())
-        .data(data)
-        .retrieveFlux(BigRequest.class)
-        .doOnNext(
-            bigRequest -> {
-              System.out.println("ID: " + bigRequest.getId());
-            })
-        .subscribe();
-  }
-
   public Runnable checkServerPing() {
     return () -> {
       // System.out.println("QUEUE SIZE = " + this.queue.size());
@@ -272,7 +237,9 @@ public class Condenser {
               amAliving.dispose();
               amAliving = null;
             }
+
             getRSocketRequester();
+            startPing();
             connect();
             connected = true;
             // startAmAlive();
@@ -295,14 +262,21 @@ public class Condenser {
 @Controller
 class HealthController {
 
-  @MessageMapping("amAlive")
-  Flux<String> amAlive(Flux<String> ping) {
-    System.out.println("entra al ping");
+  @MessageMapping("health")
+  Flux<ClientHealthState> health(Flux<String> ping) {
     ping.doOnNext(
             p -> {
               System.out.println(p);
             })
-        .subscribe();
-    return Flux.interval(Duration.ofSeconds(1)).map(p -> "pong");
+            .subscribe();
+    var stream = Stream.generate(() -> new ClientHealthState(true));
+    return Flux.fromStream(stream).delayElements(Duration.ofSeconds(1));
   }
+}
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+class ClientHealthState {
+  private boolean healthy;
 }
