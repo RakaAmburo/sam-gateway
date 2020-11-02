@@ -33,7 +33,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -61,6 +60,7 @@ public class Condenser {
   private boolean pinging = false;
   private int startingPingTimes = 0;
   private Disposable connection;
+  private Disposable pingSubscription;
   private Disposable amAliving;
   private int channelConnErrTimes = 0;
   private int aliveConnErrTimes = 0;
@@ -108,6 +108,11 @@ public class Condenser {
       amAliving = null;
     }
 
+    if (pingSubscription != null) {
+      pingSubscription.dispose();
+      pingSubscription = null;
+    }
+
     getRSocketRequester();
     startPing();
     connect();
@@ -115,14 +120,11 @@ public class Condenser {
   }
 
   private void startPing(){
-    client
+    pingSubscription = client
             .route("startPing")
             .metadata(this.credentials, this.mimeType)
             .data(Mono.empty())
             .retrieveFlux(String.class)
-            .doOnComplete(() -> {
-              System.out.println("hagase la luz");
-            })
             .doOnNext(ping ->{
               System.out.println(ping);
             })
