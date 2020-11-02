@@ -239,7 +239,7 @@ public class Condenser {
             }
 
             getRSocketRequester();
-            startPing();
+            //startPing();
             connect();
             connected = true;
             // startAmAlive();
