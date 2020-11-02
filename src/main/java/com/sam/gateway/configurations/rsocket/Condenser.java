@@ -120,7 +120,13 @@ public class Condenser {
             .metadata(this.credentials, this.mimeType)
             .data(Mono.empty())
             .retrieveFlux(String.class)
-            .subscribe(System.out::println);
+            .doFirst(()->{
+              log.info("stream enciendase");
+            })
+            .doOnNext(ping -> {
+              pingTime = System.currentTimeMillis();
+            })
+            .subscribe();
 
   }
 
