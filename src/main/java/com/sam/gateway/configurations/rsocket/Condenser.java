@@ -55,6 +55,7 @@ public class Condenser {
   private ExecutorService exec = Executors.newFixedThreadPool(4);
   private FluxSink<BigRequest> sink;
   private boolean connected = false;
+  private boolean connecting = false;
   private ScheduledExecutorService shutDown = Executors.newSingleThreadScheduledExecutor();
   private Long pingTime = 0L;
   private boolean pinging = false;
@@ -133,6 +134,7 @@ public class Condenser {
                     System.out.println("pinging now connecting");
                     connect();
                     connected = true;
+                    connecting = false;
                   }
                   pingTime = System.currentTimeMillis();
                 })
@@ -232,9 +234,8 @@ public class Condenser {
         }
       }
 
-      if (!connected) {
-        synchronized (this) {
-          if (!connected) {
+      if (!connected && !connecting) {
+            connecting = true;
             System.out.println("connecting process");
             if (this.client != null) {
               this.client.rsocket().dispose();
@@ -261,8 +262,8 @@ public class Condenser {
             // startAmAlive();
             //pingTime = System.currentTimeMillis();
           }
-        }
-      }
+
+
     };
   }
 
