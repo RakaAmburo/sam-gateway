@@ -67,8 +67,7 @@ public class Condenser {
 
   private UnicastProcessor<BigRequest> data;
 
-  @Autowired
-  private SocketAcceptor acceptor;
+  @Autowired private SocketAcceptor acceptor;
 
   public Condenser(RSocketRequester.Builder builder) {
 
@@ -90,10 +89,12 @@ public class Condenser {
   public void retryConnAndAlive() {
     System.out.println("connecting process");
 
-      this.queue.stream().forEach(monoContainer -> {
-          monoContainer.getMonoSink().error(new Exception("could not process!"));
-      });
-      this.queue.clear();
+    this.queue.stream()
+        .forEach(
+            monoContainer -> {
+              monoContainer.getMonoSink().error(new Exception("could not process!"));
+            });
+    this.queue.clear();
 
     if (this.client != null) {
       this.client.rsocket().dispose();
@@ -119,17 +120,18 @@ public class Condenser {
     connected = true;
   }
 
-  private void startPing(){
-    pingSubscription = client
+  private void startPing() {
+    pingSubscription =
+        client
             .route("startPing")
             .metadata(this.credentials, this.mimeType)
             .data(Mono.empty())
             .retrieveFlux(String.class)
-            .doOnNext(ping ->{
-              System.out.println(ping);
-            })
+            .doOnNext(
+                ping -> {
+                  System.out.println(ping);
+                })
             .subscribe();
-
   }
 
   private void connect() {
@@ -169,9 +171,7 @@ public class Condenser {
                 connector -> {
                   connector.acceptor(acceptor);
                   connector.payloadDecoder(PayloadDecoder.ZERO_COPY);
-                  // connector.reconnect(Retry.fixedDelay(Integer.MAX_VALUE,
-                  // Duration.ofSeconds(1)));
-
+                  connector.reconnect(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(1)));
                 })
             // .reconnect(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(5)))
             .connectTcp(coreRSocketHost, coreRSocketPort)
@@ -281,7 +281,7 @@ class HealthController {
             p -> {
               System.out.println(p);
             })
-            .subscribe();
+        .subscribe();
     var stream = Stream.generate(() -> new ClientHealthState(true));
     return Flux.fromStream(stream).delayElements(Duration.ofSeconds(1));
   }
