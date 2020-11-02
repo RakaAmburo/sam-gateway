@@ -33,7 +33,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 @Slf4j
@@ -67,8 +66,7 @@ public class Condenser {
 
   private UnicastProcessor<BigRequest> data;
 
-  @Autowired
-  private SocketAcceptor acceptor;
+  @Autowired private SocketAcceptor acceptor;
 
   public Condenser(RSocketRequester.Builder builder) {
 
@@ -90,10 +88,12 @@ public class Condenser {
   public void retryConnAndAlive() {
     System.out.println("connecting process");
 
-      this.queue.stream().forEach(monoContainer -> {
-          monoContainer.getMonoSink().error(new Exception("could not process!"));
-      });
-      this.queue.clear();
+    this.queue.stream()
+        .forEach(
+            monoContainer -> {
+              monoContainer.getMonoSink().error(new Exception("could not process!"));
+            });
+    this.queue.clear();
 
     if (this.client != null) {
       this.client.rsocket().dispose();
@@ -114,21 +114,22 @@ public class Condenser {
     connected = true;
   }
 
-  private void startPing(){
+  private void startPing() {
     client
-            .route("startPing")
-            .metadata(this.credentials, this.mimeType)
-            .data(Mono.empty())
-            .retrieveFlux(String.class)
-            .doFirst(()->{
+        .route("startPing")
+        .metadata(this.credentials, this.mimeType)
+        .data(Mono.empty())
+        .retrieveFlux(String.class)
+        .doFirst(
+            () -> {
               System.out.println("stream enciendase");
             })
-            .doOnNext(ping -> {
-              log.info(ping);
+        .doOnNext(
+            ping -> {
+              System.out.println(ping);
               pingTime = System.currentTimeMillis();
             })
-            .subscribe();
-
+        .subscribe();
   }
 
   private void connect() {
@@ -275,7 +276,7 @@ class HealthController {
             p -> {
               System.out.println(p);
             })
-            .subscribe();
+        .subscribe();
     var stream = Stream.generate(() -> new ClientHealthState(true));
     return Flux.fromStream(stream).delayElements(Duration.ofSeconds(1));
   }
