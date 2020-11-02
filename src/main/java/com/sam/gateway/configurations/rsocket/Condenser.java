@@ -246,6 +246,11 @@ public class Condenser {
               amAliving = null;
             }
 
+            if (pingSubscription != null) {
+              pingSubscription.dispose();
+              pingSubscription = null;
+            }
+
             getRSocketRequester();
             startPing();
             connect();
