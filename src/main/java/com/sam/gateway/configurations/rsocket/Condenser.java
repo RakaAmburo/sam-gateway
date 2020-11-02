@@ -119,7 +119,7 @@ public class Condenser {
             .route("startPing")
             .metadata(this.credentials, this.mimeType)
             .data(Mono.empty())
-            .retrieveMono(String.class)
+            .retrieveFlux(String.class)
             .subscribe(System.out::println);
 
   }
@@ -239,7 +239,7 @@ public class Condenser {
             }
 
             getRSocketRequester();
-            //startPing();
+            startPing();
             connect();
             connected = true;
             // startAmAlive();
