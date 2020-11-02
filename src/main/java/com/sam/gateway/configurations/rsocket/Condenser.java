@@ -120,7 +120,7 @@ public class Condenser {
             .metadata(this.credentials, this.mimeType)
             .data(Mono.empty())
             .retrieveFlux(String.class)
-            .doOnSubscribe(subscription -> {
+            .doOnComplete(() -> {
               System.out.println("hagase la luz");
             })
             .doOnNext(ping ->{
