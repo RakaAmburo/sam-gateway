@@ -116,8 +116,8 @@ public class Condenser {
 
     getRSocketRequester();
     startPing();
-    connect();
-    connected = true;
+    //connect();
+    //connected = true;
   }
 
   private void startPing() {
@@ -129,7 +129,12 @@ public class Condenser {
             .retrieveFlux(String.class)
             .doOnNext(
                 ping -> {
-                  System.out.println(ping);
+                  if (!connected){
+                    System.out.println("pinging now connecting");
+                    connect();
+                    connected = true;
+                  }
+                  pingTime = System.currentTimeMillis();
                 })
             .subscribe();
   }
@@ -171,7 +176,7 @@ public class Condenser {
                 connector -> {
                   connector.acceptor(acceptor);
                   connector.payloadDecoder(PayloadDecoder.ZERO_COPY);
-                  connector.reconnect(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(1)));
+                  //connector.reconnect(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(1)));
                 })
             // .reconnect(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(5)))
             .connectTcp(coreRSocketHost, coreRSocketPort)
@@ -217,17 +222,15 @@ public class Condenser {
   public Runnable checkServerPing() {
     return () -> {
       // System.out.println("QUEUE SIZE = " + this.queue.size());
-      /*if (connected && pinging) {
+      if (connected) {
         Long now = System.currentTimeMillis();
         Long diff = now - pingTime;
 
-        if (diff > 1600) {
+        if (diff > 1200) {
           System.out.println(diff + " too long diff, reconnecting!");
           connected = false;
-          pinging = false;
-          startingPingTimes = 0;
         }
-      }*/
+      }
 
       if (!connected) {
         synchronized (this) {
@@ -253,10 +256,10 @@ public class Condenser {
 
             getRSocketRequester();
             startPing();
-            connect();
-            connected = true;
+            //connect();
+            //connected = true;
             // startAmAlive();
-            pingTime = System.currentTimeMillis();
+            //pingTime = System.currentTimeMillis();
           }
         }
       }
