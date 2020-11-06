@@ -29,10 +29,10 @@ public class RSocketClient {
     return strategies -> strategies.encoder(new SimpleAuthenticationEncoder());
   }
 
-  @Bean
+  /*@Bean
   SocketAcceptor socketAcceptor(RSocketStrategies strategies, HealthController controller) {
       return RSocketMessageHandler.responder(strategies, controller);
-  }
+  }*/
 
   //@Bean
   // RSocketRequester rSocketRequester(SocketAcceptor acceptor, RSocketRequester.Builder builder) {

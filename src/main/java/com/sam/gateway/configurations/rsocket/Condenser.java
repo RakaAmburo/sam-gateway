@@ -68,7 +68,7 @@ public class Condenser {
 
   private UnicastProcessor<BigRequest> data;
 
-  @Autowired private SocketAcceptor acceptor;
+  //@Autowired private SocketAcceptor acceptor;
 
   public Condenser(RSocketRequester.Builder builder) {
 
@@ -168,7 +168,7 @@ public class Condenser {
             // .rsocketConnector(connector -> connector.acceptor(acceptor))
             .rsocketConnector(
                 connector -> {
-                  connector.acceptor(acceptor);
+                  //connector.acceptor(acceptor);
                   connector.payloadDecoder(PayloadDecoder.ZERO_COPY);
                   //connector.reconnect(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(1)));
                 })
