@@ -42,7 +42,7 @@ public class Condenser {
   private final UsernamePasswordMetadata credentials = new UsernamePasswordMetadata("jlong", "pw");
   private final MimeType mimeType =
       MimeTypeUtils.parseMimeType(WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION.getString());
-  LinkedList<MonoContainer> queue = new LinkedList<>();
+  private LinkedList<MonoContainer> queue = new LinkedList<>();
 
   @Value("${core.RSocket.host:localhost}")
   private String coreRSocketHost;
@@ -78,12 +78,6 @@ public class Condenser {
 
   private FluxSink<BigRequest> getSink() {
 
-    /*if (!connected) {
-      getRSocketRequester();
-      connect();
-      connected = true;
-      startAmAlive();
-    }*/
     return this.sink;
   }
 
@@ -117,8 +111,6 @@ public class Condenser {
 
     getRSocketRequester();
     startPing();
-    //connect();
-    //connected = true;
   }
 
   private void startPing() {
@@ -257,43 +249,9 @@ public class Condenser {
 
             getRSocketRequester();
             startPing();
-            //connect();
-            //connected = true;
-            // startAmAlive();
-            //pingTime = System.currentTimeMillis();
           }
 
 
     };
   }
-
-  public Runnable dispatchCalls(FluxSink<BigRequest> sink) {
-    return () -> {
-      BigRequest br =
-          new BigRequest(UUID.randomUUID(), List.of(UUID.randomUUID(), UUID.randomUUID()));
-      sink.next(br);
-    };
-  }
-}
-
-@Controller
-class HealthController {
-
-  @MessageMapping("health")
-  Flux<ClientHealthState> health(Flux<String> ping) {
-    ping.doOnNext(
-            p -> {
-              System.out.println(p);
-            })
-        .subscribe();
-    var stream = Stream.generate(() -> new ClientHealthState(true));
-    return Flux.fromStream(stream).delayElements(Duration.ofSeconds(1));
-  }
-}
-
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-class ClientHealthState {
-  private boolean healthy;
 }
