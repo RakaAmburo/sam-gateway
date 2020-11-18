@@ -24,6 +24,13 @@
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>-->
 		<dependency>
+			<groupId>sam-commons</groupId>
+			<artifactId>sam-commons</artifactId>
+			<scope>system</scope>
+			<version>1</version>
+			<systemPath>${env.SAM_COMMONS_JAR_PATH}/sam-commons-1.0-SNAPSHOT.jar</systemPath>
+		</dependency>
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-devtools</artifactId>
 			<scope>runtime</scope>
