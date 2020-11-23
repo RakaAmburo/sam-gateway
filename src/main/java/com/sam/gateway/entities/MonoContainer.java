@@ -9,6 +9,6 @@ import reactor.core.publisher.MonoSink;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class MonoContainer {
-    MonoSink<BigRequest> monoSink;
+public class MonoContainer<T> {
+    MonoSink<T> monoSink;
 }

@@ -1,8 +1,8 @@
 package com.sam.gateway.configurations.rsocket;
 
 import com.sam.commons.entities.BigRequest;
+import com.sam.commons.entities.MenuItemReq;
 import com.sam.gateway.entities.MonoContainer;
-
 import io.rsocket.frame.decoder.PayloadDecoder;
 import io.rsocket.metadata.WellKnownMimeType;
 import lombok.extern.slf4j.Slf4j;
@@ -32,7 +32,8 @@ public class Condenser {
   private final UsernamePasswordMetadata credentials = new UsernamePasswordMetadata("jlong", "pw");
   private final MimeType mimeType =
       MimeTypeUtils.parseMimeType(WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION.getString());
-  private LinkedList<MonoContainer> queue = new LinkedList<>();
+  private LinkedList<MonoContainer<BigRequest>> queue = new LinkedList<>();
+  private LinkedList<MonoContainer<MenuItemReq>> menuItemQueue = new LinkedList<>();
 
   @Value("${core.RSocket.host:localhost}")
   private String coreRSocketHost;
@@ -44,6 +45,7 @@ public class Condenser {
   private RSocketRequester.Builder rSocketBuilder;
   private ExecutorService exec = Executors.newFixedThreadPool(4);
   private FluxSink<BigRequest> sink;
+  private FluxSink<MenuItemReq> menuItemSink;
   private boolean connected = false;
   private boolean connecting = false;
   private ScheduledExecutorService shutDown = Executors.newSingleThreadScheduledExecutor();
@@ -51,14 +53,16 @@ public class Condenser {
   private boolean pinging = false;
   private int startingPingTimes = 0;
   private Disposable connection;
+  private Disposable menuItemConnection;
   private Disposable pingSubscription;
   private Disposable amAliving;
   private int channelConnErrTimes = 0;
   private int aliveConnErrTimes = 0;
 
   private UnicastProcessor<BigRequest> data;
+  private UnicastProcessor<MenuItemReq> menuItemData;
 
-  //@Autowired private SocketAcceptor acceptor;
+  // @Autowired private SocketAcceptor acceptor;
 
   public Condenser(RSocketRequester.Builder builder) {
 
@@ -112,13 +116,42 @@ public class Condenser {
             .retrieveFlux(String.class)
             .doOnNext(
                 ping -> {
-                  if (!connected){
+                  if (!connected) {
                     System.out.println("pinging now connecting");
                     connect();
+                    menuItemConnect();
                     connected = true;
                     connecting = false;
                   }
                   pingTime = System.currentTimeMillis();
+                })
+            .subscribe();
+  }
+
+  private void menuItemConnect() {
+    if (this.menuItemData != null) {
+      this.menuItemData.sink().complete();
+      this.menuItemData = null;
+    }
+    this.menuItemData = UnicastProcessor.create();
+    this.menuItemSink = this.menuItemData.sink();
+
+    menuItemConnection =
+        this.client
+            .route("menuItemReqChannel")
+            .metadata(this.credentials, this.mimeType)
+            // .data(Mono.empty())
+            .data(menuItemData)
+            .retrieveFlux(MenuItemReq.class)
+            .retryWhen(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(1)))
+            .doOnError(
+                error -> {
+                  System.out.println("Error sending data: " + error);
+                })
+            .doOnNext(
+                menuItemReq -> {
+                  menuItemQueue.pop().getMonoSink().success(menuItemReq);
+                  // System.out.println("ID: " + bigRequest.getId());
                 })
             .subscribe();
   }
@@ -128,8 +161,8 @@ public class Condenser {
       data.sink().complete();
       data = null;
     }
-    data = UnicastProcessor.create();
-    this.sink = data.sink();
+    this.data = UnicastProcessor.create();
+    this.sink = this.data.sink();
 
     connection =
         this.client
@@ -158,9 +191,10 @@ public class Condenser {
             // .rsocketConnector(connector -> connector.acceptor(acceptor))
             .rsocketConnector(
                 connector -> {
-                  //connector.acceptor(acceptor);
+                  // connector.acceptor(acceptor);
                   connector.payloadDecoder(PayloadDecoder.ZERO_COPY);
-                  //connector.reconnect(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(1)));
+                  // connector.reconnect(Retry.fixedDelay(Integer.MAX_VALUE,
+                  // Duration.ofSeconds(1)));
                 })
             // .reconnect(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(5)))
             .connectTcp(coreRSocketHost, coreRSocketPort)
@@ -179,6 +213,29 @@ public class Condenser {
                           // log.info("Retrying times:  " + signal.totalRetriesInARow());
                         }))
             .block();
+  }
+
+  public Mono<MenuItemReq>  doCondenseMenuItems(MenuItemReq menuItemReq){
+    if (!connected) {
+      throw new RuntimeException("NOT CONNECTED");
+    }
+
+    FluxSink<MenuItemReq> mySink = this.menuItemSink;
+
+    MonoContainer<MenuItemReq> monoContainer = new MonoContainer();
+    Mono<MenuItemReq> menuItemMono =
+            Mono.create(
+                    s -> {
+                      monoContainer.setMonoSink(s);
+                    });
+
+    // Mono.create(s -> s.onCancel(() -> cancelled.set(true)).success("test"))
+    synchronized (this) {
+      this.menuItemQueue.add(monoContainer);
+      mySink.next(menuItemReq);
+    }
+
+    return menuItemMono;
   }
 
   public Mono<BigRequest> doCondense(BigRequest bigRequest) {
@@ -217,31 +274,29 @@ public class Condenser {
       }
 
       if (!connected && !connecting) {
-            connecting = true;
-            System.out.println("connecting process");
-            if (this.client != null) {
-              this.client.rsocket().dispose();
-              this.client = null;
-            }
-            if (connection != null) {
-              connection.dispose();
-              connection = null;
-            }
-            if (amAliving != null) {
-              amAliving.dispose();
-              amAliving = null;
-            }
+        connecting = true;
+        System.out.println("connecting process");
+        if (this.client != null) {
+          this.client.rsocket().dispose();
+          this.client = null;
+        }
+        if (connection != null) {
+          connection.dispose();
+          connection = null;
+        }
+        if (amAliving != null) {
+          amAliving.dispose();
+          amAliving = null;
+        }
 
-            if (pingSubscription != null) {
-              pingSubscription.dispose();
-              pingSubscription = null;
-            }
+        if (pingSubscription != null) {
+          pingSubscription.dispose();
+          pingSubscription = null;
+        }
 
-            getRSocketRequester();
-            startPing();
-          }
-
-
+        getRSocketRequester();
+        startPing();
+      }
     };
   }
 }
