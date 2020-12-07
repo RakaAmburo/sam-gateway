@@ -34,6 +34,7 @@ public class Condenser {
       MimeTypeUtils.parseMimeType(WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION.getString());
   private LinkedList<MonoContainer<BigRequest>> queue = new LinkedList<>();
   private LinkedList<MonoContainer<MenuItemReq>> menuItemQueue = new LinkedList<>();
+  private LinkedList<MonoContainer<MenuItemReq>> deleteMenuItemQueue = new LinkedList<>();
 
   @Value("${core.RSocket.host:localhost}")
   private String coreRSocketHost;
@@ -46,6 +47,7 @@ public class Condenser {
   private ExecutorService exec = Executors.newFixedThreadPool(4);
   private FluxSink<BigRequest> sink;
   private FluxSink<MenuItemReq> menuItemSink;
+  private FluxSink<MenuItemReq> deleteMenuItemSink;
   private boolean connected = false;
   private boolean connecting = false;
   private ScheduledExecutorService shutDown = Executors.newSingleThreadScheduledExecutor();
@@ -54,6 +56,7 @@ public class Condenser {
   private int startingPingTimes = 0;
   private Disposable connection;
   private Disposable menuItemConnection;
+  private Disposable deleteMenuItemConnection;
   private Disposable pingSubscription;
   private Disposable amAliving;
   private int channelConnErrTimes = 0;
@@ -61,6 +64,7 @@ public class Condenser {
 
   private UnicastProcessor<BigRequest> data;
   private UnicastProcessor<MenuItemReq> menuItemData;
+  private UnicastProcessor<MenuItemReq> deleteMenuItemData;
 
   // @Autowired private SocketAcceptor acceptor;
 
@@ -120,12 +124,41 @@ public class Condenser {
                     System.out.println("pinging now connecting");
                     connect();
                     menuItemConnect();
+                    deleteMenuItemConnect();
                     connected = true;
                     connecting = false;
                   }
                   pingTime = System.currentTimeMillis();
                 })
             .subscribe();
+  }
+
+  private void deleteMenuItemConnect() {
+    if (this.deleteMenuItemData != null) {
+      this.deleteMenuItemData.sink().complete();
+      this.deleteMenuItemData = null;
+    }
+    this.deleteMenuItemData = UnicastProcessor.create();
+    this.deleteMenuItemSink = this.deleteMenuItemData.sink();
+
+    deleteMenuItemConnection =
+            this.client
+                    .route("deleteMenuItemReqChannel")
+                    .metadata(this.credentials, this.mimeType)
+                    // .data(Mono.empty())
+                    .data(deleteMenuItemData)
+                    .retrieveFlux(MenuItemReq.class)
+                    .retryWhen(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(1)))
+                    .doOnError(
+                            error -> {
+                              System.out.println("Error sending data: " + error);
+                            })
+                    .doOnNext(
+                            menuItemReq -> {
+                              deleteMenuItemQueue.pop().getMonoSink().success(menuItemReq);
+                              // System.out.println("ID: " + bigRequest.getId());
+                            })
+                    .subscribe();
   }
 
   private void menuItemConnect() {
@@ -215,6 +248,29 @@ public class Condenser {
             .block();
   }
 
+  public Mono<MenuItemReq>  doCondenseDeleteMenuItems(MenuItemReq menuItemReq){
+    if (!connected) {
+      throw new RuntimeException("NOT CONNECTED");
+    }
+
+    FluxSink<MenuItemReq> mySink = this.deleteMenuItemSink;
+
+    MonoContainer<MenuItemReq> monoContainer = new MonoContainer();
+    Mono<MenuItemReq> menuItemMono =
+            Mono.create(
+                    s -> {
+                      monoContainer.setMonoSink(s);
+                    });
+
+    // Mono.create(s -> s.onCancel(() -> cancelled.set(true)).success("test"))
+    synchronized (this) {
+      this.deleteMenuItemQueue.add(monoContainer);
+      mySink.next(menuItemReq);
+    }
+
+    return menuItemMono;
+  }
+
   public Mono<MenuItemReq>  doCondenseMenuItems(MenuItemReq menuItemReq){
     if (!connected) {
       throw new RuntimeException("NOT CONNECTED");
@@ -284,6 +340,17 @@ public class Condenser {
           connection.dispose();
           connection = null;
         }
+
+        if (menuItemConnection != null) {
+          menuItemConnection.dispose();
+          menuItemConnection = null;
+        }
+
+        if (deleteMenuItemConnection != null) {
+          deleteMenuItemConnection.dispose();
+          deleteMenuItemConnection = null;
+        }
+
         if (amAliving != null) {
           amAliving.dispose();
           amAliving = null;

@@ -53,6 +53,17 @@ public class Test {
     return resp.map(item -> item.getMenuItemDTO());
   }
 
+  @PostMapping("/deleteMenuItem")
+  public Mono<MenuItemDTO> deleteMenuItem(@RequestBody MenuItemDTO menuItemDTO) {
+    MenuItemReq menuItemReq = new MenuItemReq();
+    menuItemReq.setId(UUID.randomUUID());
+    menuItemReq.setAction(Action.INSERT);
+    menuItemReq.setMenuItemDTO(menuItemDTO);
+    menuItemReq.setStatus(Status.OK);
+    Mono<MenuItemReq> resp = condenser.doCondenseDeleteMenuItems(menuItemReq);
+    return resp.map(item -> item.getMenuItemDTO());
+  }
+
   @GetMapping("/stop")
   public Mono<Void> stop() {
     System.exit(1);
