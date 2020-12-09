@@ -7,6 +7,8 @@ import com.sam.commons.entities.MenuItemReq;
 import com.sam.commons.entities.Status;
 import com.sam.gateway.configurations.rsocket.Condenser;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -55,14 +57,21 @@ public class Test {
   }
 
   @DeleteMapping("/deleteMenuItem")
-  public Mono<MenuItemDTO> deleteMenuItem(@RequestBody MenuItemDTO menuItemDTO) {
+  public Mono<ResponseEntity<MenuItemDTO>> deleteMenuItem(@RequestBody MenuItemDTO menuItemDTO) {
     MenuItemReq menuItemReq = new MenuItemReq();
     menuItemReq.setId(UUID.randomUUID());
     menuItemReq.setAction(Action.INSERT);
     menuItemReq.setMenuItemDTO(menuItemDTO);
     menuItemReq.setStatus(Status.OK);
     Mono<MenuItemReq> resp = condenser.doCondenseDeleteMenuItems(menuItemReq);
-    return resp.map(item -> item.getMenuItemDTO());
+
+    return Mono.from(resp).map( response -> {
+      if (response.getStatus() == Status.ERROR){
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response.getMenuItemDTO());
+      } else {
+        return ResponseEntity.ok(response.getMenuItemDTO());
+      }
+    });
   }
 
   @GetMapping("/stop")
