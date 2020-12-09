@@ -118,6 +118,9 @@ public class Condenser {
             .metadata(this.credentials, this.mimeType)
             .data(Mono.empty())
             .retrieveFlux(String.class)
+            .doOnError(error -> {
+              error.printStackTrace();
+            })
             .doOnNext(
                 ping -> {
                   if (!connected) {
@@ -142,23 +145,23 @@ public class Condenser {
     this.deleteMenuItemSink = this.deleteMenuItemData.sink();
 
     deleteMenuItemConnection =
-            this.client
-                    .route("deleteMenuItemReqChannel")
-                    .metadata(this.credentials, this.mimeType)
-                    // .data(Mono.empty())
-                    .data(deleteMenuItemData)
-                    .retrieveFlux(MenuItemReq.class)
-                    .retryWhen(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(1)))
-                    .doOnError(
-                            error -> {
-                              System.out.println("Error sending data: " + error);
-                            })
-                    .doOnNext(
-                            menuItemReq -> {
-                              deleteMenuItemQueue.pop().getMonoSink().success(menuItemReq);
-                              // System.out.println("ID: " + bigRequest.getId());
-                            })
-                    .subscribe();
+        this.client
+            .route("deleteMenuItemReqChannel")
+            .metadata(this.credentials, this.mimeType)
+            // .data(Mono.empty())
+            .data(deleteMenuItemData)
+            .retrieveFlux(MenuItemReq.class)
+            .retryWhen(Retry.fixedDelay(Integer.MAX_VALUE, Duration.ofSeconds(1)))
+            .doOnError(
+                error -> {
+                  System.out.println("Error sending data: " + error);
+                })
+            .doOnNext(
+                menuItemReq -> {
+                  deleteMenuItemQueue.pop().getMonoSink().success(menuItemReq);
+                  // System.out.println("ID: " + bigRequest.getId());
+                })
+            .subscribe();
   }
 
   private void menuItemConnect() {
@@ -248,7 +251,7 @@ public class Condenser {
             .block();
   }
 
-  public Mono<MenuItemReq>  doCondenseDeleteMenuItems(MenuItemReq menuItemReq){
+  public Mono<MenuItemReq> doCondenseDeleteMenuItems(MenuItemReq menuItemReq) {
     if (!connected) {
       throw new RuntimeException("NOT CONNECTED");
     }
@@ -257,10 +260,10 @@ public class Condenser {
 
     MonoContainer<MenuItemReq> monoContainer = new MonoContainer();
     Mono<MenuItemReq> menuItemMono =
-            Mono.create(
-                    s -> {
-                      monoContainer.setMonoSink(s);
-                    });
+        Mono.create(
+            s -> {
+              monoContainer.setMonoSink(s);
+            });
 
     // Mono.create(s -> s.onCancel(() -> cancelled.set(true)).success("test"))
     synchronized (this) {
@@ -271,7 +274,7 @@ public class Condenser {
     return menuItemMono;
   }
 
-  public Mono<MenuItemReq>  doCondenseMenuItems(MenuItemReq menuItemReq){
+  public Mono<MenuItemReq> doCondenseMenuItems(MenuItemReq menuItemReq) {
     if (!connected) {
       throw new RuntimeException("NOT CONNECTED");
     }
@@ -280,10 +283,10 @@ public class Condenser {
 
     MonoContainer<MenuItemReq> monoContainer = new MonoContainer();
     Mono<MenuItemReq> menuItemMono =
-            Mono.create(
-                    s -> {
-                      monoContainer.setMonoSink(s);
-                    });
+        Mono.create(
+            s -> {
+              monoContainer.setMonoSink(s);
+            });
 
     // Mono.create(s -> s.onCancel(() -> cancelled.set(true)).success("test"))
     synchronized (this) {
