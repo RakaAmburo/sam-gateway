@@ -60,7 +60,7 @@ public class Test {
   public Mono<ResponseEntity<MenuItemDTO>> deleteMenuItem(@RequestBody MenuItemDTO menuItemDTO) {
     MenuItemReq menuItemReq = new MenuItemReq();
     menuItemReq.setId(UUID.randomUUID());
-    menuItemReq.setAction(Action.INSERT);
+    menuItemReq.setAction(Action.DELETE);
     menuItemReq.setMenuItemDTO(menuItemDTO);
     menuItemReq.setStatus(Status.OK);
     Mono<MenuItemReq> resp = condenser.doCondenseDeleteMenuItems(menuItemReq);
