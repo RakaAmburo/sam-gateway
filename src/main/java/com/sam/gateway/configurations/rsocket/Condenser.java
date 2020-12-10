@@ -118,16 +118,17 @@ public class Condenser {
             .metadata(this.credentials, this.mimeType)
             .data(Mono.empty())
             .retrieveFlux(String.class)
-            .doOnError(error -> {
-              error.printStackTrace();
-            })
+            .doOnError(
+                error -> {
+                  error.printStackTrace();
+                })
             .doOnNext(
                 ping -> {
                   if (!connected) {
                     System.out.println("pinging now connecting");
-                    connect();
-                    menuItemConnect();
-                    deleteMenuItemConnect();
+                    //connect();
+                    //menuItemConnect();
+                    //deleteMenuItemConnect();
                     connected = true;
                     connecting = false;
                   }
