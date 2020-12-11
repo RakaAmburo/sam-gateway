@@ -79,6 +79,11 @@ public class Condenser {
     return this.sink;
   }
 
+  public void disconnect(){
+    this.pingSubscription.dispose();
+    this.client.rsocket().dispose();
+  }
+
   public void retryConnAndAlive() {
     System.out.println("connecting process");
 
@@ -126,9 +131,9 @@ public class Condenser {
                 ping -> {
                   if (!connected) {
                     System.out.println("pinging now connecting");
-                    connect();
-                    menuItemConnect();
-                    deleteMenuItemConnect();
+                    //connect();
+                    //menuItemConnect();
+                    //deleteMenuItemConnect();
                     connected = true;
                     connecting = false;
                   }

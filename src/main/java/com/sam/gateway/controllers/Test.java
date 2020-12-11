@@ -85,4 +85,10 @@ public class Test {
     condenser.retryConnAndAlive();
     return Mono.empty();
   }
+
+  @GetMapping("/close")
+  public Mono<Void> close() {
+    condenser.disconnect();
+    return Mono.empty();
+  }
 }
