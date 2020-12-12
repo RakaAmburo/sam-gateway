@@ -131,9 +131,9 @@ public class Condenser {
                 ping -> {
                   if (!connected) {
                     System.out.println("pinging now connecting");
-                    //connect();
-                    //menuItemConnect();
-                    //deleteMenuItemConnect();
+                    connect();
+                    menuItemConnect();
+                    deleteMenuItemConnect();
                     connected = true;
                     connecting = false;
                   }
