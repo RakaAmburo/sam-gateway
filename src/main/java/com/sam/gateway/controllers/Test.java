@@ -46,14 +46,21 @@ public class Test {
   }
 
   @PostMapping("/addMenuItem")
-  public Mono<MenuItemDTO> addMenuItem(@RequestBody MenuItemDTO menuItemDTO) {
+  public Mono<ResponseEntity<MenuItemDTO>> addMenuItem(@RequestBody MenuItemDTO menuItemDTO) {
     MenuItemReq menuItemReq = new MenuItemReq();
     menuItemReq.setId(UUID.randomUUID());
     menuItemReq.setAction(Action.INSERT);
     menuItemReq.setMenuItemDTO(menuItemDTO);
     menuItemReq.setStatus(Status.OK);
     Mono<MenuItemReq> resp = condenser.doCondenseMenuItems(menuItemReq);
-    return resp.map(item -> item.getMenuItemDTO());
+
+    return Mono.from(resp).map( response -> {
+      if (response.getStatus() == Status.ERROR){
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response.getMenuItemDTO());
+      } else {
+        return ResponseEntity.ok(response.getMenuItemDTO());
+      }
+    });
   }
 
   @DeleteMapping("/deleteMenuItem")
