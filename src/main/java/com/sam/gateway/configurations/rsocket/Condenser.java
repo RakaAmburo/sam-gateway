@@ -79,7 +79,7 @@ public class Condenser {
     return this.sink;
   }
 
-  public void disconnect(){
+  public void disconnect() {
     this.pingSubscription.dispose();
     this.client.rsocket().dispose();
   }
@@ -336,6 +336,24 @@ public class Condenser {
         if (diff > 1200) {
           System.out.println(diff + " too long diff, reconnecting!");
           connected = false;
+          this.queue.stream()
+              .forEach(
+                  monoContainer -> {
+                    monoContainer.getMonoSink().error(new Exception("could not process!"));
+                  });
+          this.queue.clear();
+          this.menuItemQueue.stream()
+              .forEach(
+                  monoContainer -> {
+                    monoContainer.getMonoSink().error(new Exception("could not process!"));
+                  });
+          this.menuItemQueue.clear();
+          this.deleteMenuItemQueue.stream()
+              .forEach(
+                  monoContainer -> {
+                    monoContainer.getMonoSink().error(new Exception("could not process!"));
+                  });
+          this.deleteMenuItemQueue.clear();
         }
       }
 
