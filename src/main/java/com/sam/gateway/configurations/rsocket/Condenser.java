@@ -192,6 +192,7 @@ public class Condenser {
                 })
             .doOnNext(
                 menuItemReq -> {
+                  System.out.println("esto es nulo? " + menuItemReq);
                   menuItemQueue.pop().getMonoSink().success(menuItemReq);
                   // System.out.println("ID: " + bigRequest.getId());
                 })
