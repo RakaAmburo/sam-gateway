@@ -164,7 +164,9 @@ public class Condenser {
                 })
             .doOnNext(
                 menuItemReq -> {
-                  deleteMenuItemQueue.pop().getMonoSink().success(menuItemReq);
+                  synchronized (this) {
+                    deleteMenuItemQueue.pop().getMonoSink().success(menuItemReq);
+                  }
                   // System.out.println("ID: " + bigRequest.getId());
                 })
             .subscribe();
@@ -192,8 +194,10 @@ public class Condenser {
                 })
             .doOnNext(
                 menuItemReq -> {
-                  System.out.println("esto es nulo? " + menuItemReq);
-                  menuItemQueue.pop().getMonoSink().success(menuItemReq);
+                  // System.out.println("esto es nulo? " + menuItemReq);
+                  synchronized (this) {
+                    menuItemQueue.pop().getMonoSink().success(menuItemReq);
+                  }
                   // System.out.println("ID: " + bigRequest.getId());
                 })
             .subscribe();
@@ -221,7 +225,9 @@ public class Condenser {
                 })
             .doOnNext(
                 bigRequest -> {
-                  queue.pop().getMonoSink().success(bigRequest);
+                  synchronized (this) {
+                    queue.pop().getMonoSink().success(bigRequest);
+                  }
                   // System.out.println("ID: " + bigRequest.getId());
                 })
             .subscribe();
